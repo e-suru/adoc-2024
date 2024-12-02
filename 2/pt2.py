@@ -25,14 +25,13 @@ for row in f.readlines():
                     break
 
     if not safe:
-        for j in range(0, len(levels)+1):
+        for j in range(0, len(levels)):
             safe = True
             pos_neg_flag_set = False
             pos_neg_flag = 0
             index_to_delete = -1
 
             new_levels = levels[:j] + levels[j+1:]
-            print(new_levels)
             for i in range(1, len(new_levels)):
                 diff = int(new_levels[i]) - int(new_levels[i-1])
 
