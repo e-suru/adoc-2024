@@ -1,4 +1,4 @@
-day,part,language,start_time,end_time
-1,3,python,1733097098,1733098014
-2,1,python,1733161242,1733162006
-2,2,python,1733163432,1733165378
+day,part,language,start_time,end_time,stars
+1,3,python,1733097098,1733098014,2
+2,1,python,1733161242,1733162006,1
+2,2,python,1733163432,1733165378,1
