@@ -28,87 +28,93 @@ def load_filesystem(filepath):
             "empty": is_empty,
             "file_id": file_id,
             "max_size": int(block),
-            "contents": contents
+            "contents": contents,
+            "data_starts": 0
         }
         i += 1
     return filesystem
 
 def move_blocks(filesystem: dict):
-    files_moved = True
-    while files_moved:
-        files_moved = False
-        empty_blocks = get_empty_blocks(filesystem)
-        block_to_move_index = len(filesystem) - 1
-
-        while block_to_move_index >= 0:
-            block_to_move = filesystem[block_to_move_index]
-            max_empty_block_size = max(filesystem.keys())
-            if (block_to_move["empty"] or len(block_to_move["contents"])>max_empty_block_size):
-                block_to_move_index -= 1
-                if (not block_to_move_index >= 0):
-                    break
-                continue
-            if (len(empty_blocks) == 0):
-                break
-            
-            move_the_files = True
-            size_block = len(block_to_move["contents"])
-            excess = 0
-            while not size_block in empty_blocks:
-                size_block += 1
-                excess += 1
-                if size_block > max_empty_block_size:
-                    move_the_files = False
-                    break
-            
-            if move_the_files:
-                new_location = empty_blocks[size_block].pop(0)
-                if empty_blocks[size_block] == []:
-                    empty_blocks.pop(size_block)
-                
-                new_contents = [block_to_move["file_id"] for i in range(len(block_to_move["contents"]))] + [int("-1") for j in range(excess)]
-                filesystem[new_location]["contents"] = new_contents
-                filesystem[new_location]["empty"] = False
-
-                filesystem[block_to_move_index]["contents"] = []
-                filesystem[block_to_move_index]["empty"] = True
-                files_moved = True
-            block_to_move_index -= 1
-        print_filesystem(filesystem)
-    get_checksum(filesystem)
-        
-
-        
+    for k in range(25):
+        print("iteration " + str(k))
+        move_blocks_right(filesystem)
+    
     print_filesystem(filesystem)
+    get_checksum(filesystem)
     return filesystem
 
-def get_empty_blocks(filesystem):
-    empty_blocks = {}
-    for i in range(len(filesystem)):
-        if filesystem[i]["empty"] and (not len(filesystem[i]["contents"]) == filesystem[i]["max_size"]):
-            block_max_size = filesystem[i]["max_size"]
-            if block_max_size in empty_blocks:
-                empty_blocks[block_max_size].append(i)
-            else:
-                empty_blocks[block_max_size] = [i]
-    return empty_blocks
+def move_blocks_right(filesystem: dict):
+    block_to_move_index = len(filesystem) - 1
+    while block_to_move_index >= 0:
+        we_move = True
+        while len(filesystem[block_to_move_index]["contents"]) == 0:
+            block_to_move_index -= 1
+            if block_to_move_index < 0:
+                we_move = False
+                break
+        
+        if we_move:
+            # inspect contents - multiple files in one block  
+            unique_vals = set(filesystem[block_to_move_index]["contents"])
+            
+            for val in unique_vals:
+                contents_to_move = [val for x in range(filesystem[block_to_move_index]["contents"].count(val))]
+
+                empty_block_index = -1
+                current_index = 0
+                while current_index < block_to_move_index:
+                    # if current index not full
+                    empty_space_at_current = filesystem[current_index]["max_size"] - len(filesystem[current_index]["contents"])
+                    if empty_space_at_current > 0:
+                        if empty_space_at_current >= len(contents_to_move):
+                            empty_block_index = current_index
+                            break
+                    current_index += 1
+                
+                if not empty_block_index == -1:
+                    if not filesystem[empty_block_index]["data_starts"] == 0:
+                        if filesystem[empty_block_index]["data_starts"] >= len(contents_to_move):
+                            c = contents_to_move + filesystem[empty_block_index]["contents"]
+                            filesystem[empty_block_index]["contents"] = c
+                            filesystem[empty_block_index]["data_starts"] = 0
+                        else:
+                            filesystem[empty_block_index]["contents"] += contents_to_move
+                    else:
+                        filesystem[empty_block_index]["contents"] += contents_to_move
+
+                    if (not filesystem[block_to_move_index]["contents"][0] == val) and (len(unique_vals) > 1):
+                        for x in range(len(filesystem[block_to_move_index]["contents"])):
+                            if not filesystem[block_to_move_index]["contents"][x] == val:
+                                filesystem[block_to_move_index]["data_starts"] = x
+                    
+                    new_contents = []
+                    for item in filesystem[block_to_move_index]["contents"]:
+                        if not item == val:
+                            new_contents.append(item)
+
+                    filesystem[block_to_move_index]["contents"] = new_contents
+
+        block_to_move_index -= 1
+
 
 def print_filesystem(filesystem):
     for x in range(len(filesystem)):
-        print(str(x))
+        #print(str(x))
         print(filesystem[x])
 
 def get_checksum(filesystem):
     i = 0
     checksum = 0
     for x in range(len(filesystem)):
+        #for y in range(filesystem[x]["max_size"]):
+        i += filesystem[x]["data_starts"]
         for item in filesystem[x]["contents"]:
-            if not int(item) == -1:
-                checksum += i * int(item)
+            checksum += i * int(item)
             i += 1
+        i += filesystem[x]["max_size"] - len(filesystem[x]["contents"]) + filesystem[x]["data_starts"]
+
     print(checksum)
             
-filesystem = load_filesystem("test1.txt")
-#filesystem = load_filesystem("input.txt")
+#filesystem = load_filesystem("test1.txt")
+filesystem = load_filesystem("input.txt")
 filesystem = move_blocks(filesystem)
-get_checksum(filesystem)
